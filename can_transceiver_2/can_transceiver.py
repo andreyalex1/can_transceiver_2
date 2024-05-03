@@ -10,8 +10,14 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import UInt8MultiArray
+import atexit
+
+def exit_handler():
+    os.system('/sbin/ifconfig can1 down')
 
 
+
+    
 class can_transceiver(Node):
 
     def __init__(self):
@@ -24,10 +30,9 @@ class can_transceiver(Node):
         self.timer = self.create_timer(timer_period, self.spin)
         self.get_logger().info("CAN Started!")
     def __del__(self):
-        os.system('ifconfig can1 down')
         self.get_logger().info("CAN Killed!")
-    def callback(self, data):
-        send = can.Message(arbitration_id = msg.data[0],data = msg.data[1:9] , extended_id=False)
+    def callback(self, msg):
+        send = can.Message(arbitration_id = msg.data[0],data = msg.data[1:9] , is_extended_id=False)
         self.can0.send(send)
     def spin(self):
         arr = UInt8MultiArray()
@@ -38,12 +43,13 @@ class can_transceiver(Node):
 
 
 def main(args=None):
+    atexit.register(exit_handler)
     rclpy.init()
     ct = can_transceiver()
     rclpy.spin(ct)
 
-
-    minimal_publisher.destroy_node()
+    
+    ct.destroy_node()
     rclpy.shutdown()
 
 
